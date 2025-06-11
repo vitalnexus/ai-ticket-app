@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Ticketing System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: white;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar h1 {
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            margin-top: 80px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+        }
+
+        .main-form {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            padding: 2rem;
+            animation: slideInLeft 0.8s ease-out;
+        }
+
+        .ai-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            height: fit-content;
+            animation: slideInRight 0.8s ease-out;
+            position: sticky;
+            top: 100px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #fff, #f0f0f0, #fff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #ffd700;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #ffd700;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .ai-suggestion {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid #4ade80;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .ai-analysis {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .ai-warning {
+            background: rgba(248, 113, 113, 0.2);
+            border: 1px solid #f87171;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #4ade80, #22c55e);
+            border-radius: 3px;
+            transition: width 1s ease-out;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 215, 0, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ai-thinking {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            opacity: 0.8;
+        }
+
+        .thinking-dots {
+            display: inline-block;
+            animation: thinking 1.5s ease-in-out infinite;
+        }
+
+        .priority-suggestion {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+        }
+
+        .priority-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .priority-badge.low { background: #4ade80; color: #000; }
+        .priority-badge.medium { background: #fbbf24; color: #000; }
+        .priority-badge.high { background: #f87171; color: #fff; }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes thinking {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .ai-panel {
+                position: static;
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🤖 Steve's AI-Powered Ticketing System</h1>
+    </nav>
+
+    <div class="container">
+        <div class="main-form">
+            <div class="header">
+                <h2>Submit Smart Ticket 🚀</h2>
+                <p>Our AI analyzes your request in real-time and provides intelligent suggestions</p>
+            </div>
+
+            <form id="ticketForm">
+                <div class="form-group">
+                    <label for="name">👤 Your Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">📧 Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">📋 Subject</label>
+                    <input type="text" id="subject" name="subject" placeholder="Brief description of your issue" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">📝 Detailed Description</label>
+                    <textarea id="description" name="description" rows="6" placeholder="Describe your issue in detail. Our AI will analyze this to provide better suggestions..." required></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Submit AI-Enhanced Ticket 🤖
+                </button>
+            </form>
+        </div>
+
+        <div class="ai-panel">
+            <div class="ai-header">
+                <h3>🤖 AI Assistant</h3>
+            </div>
+            
+            <div class="ai-status">
+                <div class="status-dot"></div>
+                <span>AI Analysis Active</span>
+            </div>
+
+            <div id="aiOutput">
+                <div style="text-align: center; opacity: 0.6; padding: 2rem;">
+                    Start typing in the form and watch the AI magic happen! ✨
+                </div>
+            </div>
+
+            <div class="ai-thinking" id="aiThinking">
+                <div>🤖 AI is thinking<span class="thinking-dots">...</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AITicketAnalyzer {
+            constructor() {
+                this.isAnalyzing = false;
+                this.analysisDelay = 1500; // Delay before analysis
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const subjectInput = document.getElementById('subject');
+                const descriptionInput = document.getElementById('description');
+
+                // Analyze on input with debouncing
+                let analysisTimeout;
+                const analyzeWithDelay = () => {
+                    clearTimeout(analysisTimeout);
+                    analysisTimeout = setTimeout(() => {
+                        this.analyzeTicket();
+                    }, this.analysisDelay);
+                };
+
+                subjectInput.addEventListener('input', analyzeWithDelay);
+                descriptionInput.addEventListener('input', analyzeWithDelay);
+            }
+
+            async analyzeTicket() {
+                const subject = document.getElementById('subject').value.trim();
+                const description = document.getElementById('description').value.trim();
+
+                if (!subject && !description) {
+                    this.showDefaultMessage();
+                    return;
+                }
+
+                this.showThinking();
+
+                // Simulate AI processing delay
+                await this.delay(2000);
+
+                const analysis = this.performAIAnalysis(subject, description);
+                this.displayAnalysis(analysis);
+            }
+
+            performAIAnalysis(subject, description) {
+                const text = (subject + ' ' + description).toLowerCase();
+                
+                // Category detection
+                const categories = {
+                    'technical': ['error', 'bug', 'crash', 'broken', 'not working', 'issue', 'problem', 'fail', 'code', 'system'],
+                    'billing': ['payment', 'charge', 'bill', 'invoice', 'refund', 'money', 'cost', 'price', 'subscription'],
+                    'account': ['login', 'password', 'access', 'account', 'profile', 'settings', 'username'],
+                    'feature': ['request', 'suggestion', 'improve', 'add', 'new feature', 'enhancement', 'would like'],
+                    'general': ['question', 'help', 'how to', 'information', 'support']
+                };
+
+                let bestCategory = 'general';
+                let maxScore = 0;
+                let categoryConfidence = 0;
+
+                for (const [category, keywords] of Object.entries(categories)) {
+                    const score = keywords.reduce((acc, keyword) => {
+                        return acc + (text.includes(keyword) ? 1 : 0);
+                    }, 0);
+                    
+                    if (score > maxScore) {
+                        maxScore = score;
+                        bestCategory = category;
+                        categoryConfidence = Math.min(90, 40 + (score * 15));
+                    }
+                }
+
+                // Priority detection
+                const urgentKeywords = ['urgent', 'asap', 'immediately', 'critical', 'emergency', 'down', 'crashed', 'broken'];
+                const mediumKeywords = ['soon', 'important', 'needed', 'issue', 'problem'];
+                
+                let priority = 'low';
+                let priorityConfidence = 60;
+
+                if (urgentKeywords.some(keyword => text.includes(keyword))) {
+                    priority = 'high';
+                    priorityConfidence = 85;
+                } else if (mediumKeywords.some(keyword => text.includes(keyword))) {
+                    priority = 'medium';
+                    priorityConfidence = 75;
+                }
+
+                // Sentiment analysis (basic)
+                const negativeWords = ['angry', 'frustrated', 'terrible', 'awful', 'horrible', 'hate'];
+                const sentiment = negativeWords.some(word => text.includes(word)) ? 'negative' : 'neutral';
+
+                // Generate suggestions
+                const suggestions = this.generateSuggestions(bestCategory, priority, text);
+
+                return {
+                    category: bestCategory,
+                    categoryConfidence,
+                    priority,
+                    priorityConfidence,
+                    sentiment,
+                    suggestions,
+                    wordCount: text.split(' ').length,
+                    hasEnoughDetail: description.length > 50
+                };
+            }
+
+            generateSuggestions(category, priority, text) {
+                const suggestions = [];
+
+                // Category-specific suggestions
+                if (category === 'technical') {
+                    suggestions.push({
+                        type: 'info',
+                        title: 'Technical Issue Detected',
+                        message: 'Consider including: browser version, operating system, steps to reproduce the issue.'
+                    });
+                }
+
+                if (category === 'billing') {
+                    suggestions.push({
+                        type: 'info',
+                        title: 'Billing Inquiry',
+                        message: 'Please include your account ID or invoice number for faster resolution.'
+                    });
+                }
+
+                // Priority suggestions
+                if (priority === 'high') {
+                    suggestions.push({
+                        type: 'warning',
+                        title: 'High Priority Detected',
+                        message: 'This ticket will be escalated to our priority support team.'
+                    });
+                }
+
+                // Detail suggestions
+                if (text.length < 100) {
+                    suggestions.push({
+                        type: 'suggestion',
+                        title: 'Add More Details',
+                        message: 'More detailed descriptions help us resolve issues faster. Consider adding screenshots or error messages.'
+                    });
+                }
+
+                return suggestions;
+            }
+
+            displayAnalysis(analysis) {
+                const output = document.getElementById('aiOutput');
+                
+                let html = `
+                    <div class="ai-analysis">
+                        <h4>🎯 AI Analysis Results</h4>
+                        <div style="margin-top: 1rem;">
+                            <strong>Detected Category:</strong> ${this.formatCategory(analysis.category)}
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${analysis.categoryConfidence}%"></div>
+                            </div>
+                            <small>${analysis.categoryConfidence}% confidence</small>
+                        </div>
+                        
+                        <div class="priority-suggestion">
+                            <strong>Suggested Priority:</strong>
+                            <span class="priority-badge ${analysis.priority}">${analysis.priority.toUpperCase()}</span>
+                            <small>(${analysis.priorityConfidence}% confidence)</small>
+                        </div>
+                    </div>
+                `;
+
+                // Add suggestions
+                analysis.suggestions.forEach(suggestion => {
+                    const className = suggestion.type === 'warning' ? 'ai-warning' : 
+                                    suggestion.type === 'suggestion' ? 'ai-suggestion' : 'ai-analysis';
+                    
+                    html += `
+                        <div class="${className}">
+                            <strong>${suggestion.title}</strong>
+                            <p style="margin-top: 0.5rem; font-size: 0.9rem;">${suggestion.message}</p>
+                        </div>
+                    `;
+                });
+
+                // Add stats
+                html += `
+                    <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; margin-top: 1rem;">
+                        <h5 style="margin-bottom: 0.5rem;">📊 Ticket Stats</h5>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">
+                            <div>Word count: ${analysis.wordCount}</div>
+                            <div>Detail level: ${analysis.hasEnoughDetail ? 'Good ✅' : 'Needs more info ⚠️'}</div>
+                            <div>Sentiment: ${analysis.sentiment === 'negative' ? 'Frustrated 😤' : 'Neutral 😐'}</div>
+                        </div>
+                    </div>
+                `;
+
+                output.innerHTML = html;
+                this.hideThinking();
+            }
+
+            formatCategory(category) {
+                const icons = {
+                    'technical': '🔧 Technical',
+                    'billing': '💰 Billing',
+                    'account': '👥 Account',
+                    'feature': '✨ Feature Request',
+                    'general': '💬 General'
+                };
+                return icons[category] || '📋 ' + category;
+            }
+
+            showThinking() {
+                document.getElementById('aiThinking').style.display = 'block';
+                this.isAnalyzing = true;
+            }
+
+            hideThinking() {
+                document.getElementById('aiThinking').style.display = 'none';
+                this.isAnalyzing = false;
+            }
+
+            showDefaultMessage() {
+                document.getElementById('aiOutput').innerHTML = `
+                    <div style="text-align: center; opacity: 0.6; padding: 2rem;">
+                        Start typing in the form and watch the AI magic happen! ✨
+                    </div>
+                `;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize the AI system
+        const aiAnalyzer = new AITicketAnalyzer();
+
+        // Form submission
+        document.getElementById('ticketForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const ticketData = Object.fromEntries(formData);
+            
+            // Generate ticket ID
+            ticketData.id = 'AI-TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            ticketData.timestamp = new Date().toISOString();
+            ticketData.status = 'open';
+            
+            // Store ticket
+            let tickets = JSON.parse(localStorage.getItem('ai-tickets') || '[]');
+            tickets.push(ticketData);
+            localStorage.setItem('ai-tickets', JSON.stringify(tickets));
+            
+            // Show success
+            alert(`🎉 AI-Enhanced Ticket Created!\nTicket ID: ${ticketData.id}\n\nOur AI has analyzed your request and it's been routed to the appropriate team.`);
+            
+            console.log('AI Ticket Created:', ticketData);
+        });
+    </script>
+</body>
+</html>
