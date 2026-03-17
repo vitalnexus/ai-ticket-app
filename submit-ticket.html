@@ -259,7 +259,24 @@
             .priority-selector { flex-direction: column; }
             .navbar { padding: 1rem; }
         }
+
+        /* ── Disabled Banner ─────────────────────────────────────── */
+        .disabled-banner {
+            display: none;
+            max-width: 800px;
+            margin: 100px auto 0;
+            padding: 2.5rem;
+            background: rgba(248, 113, 113, 0.15);
+            border: 2px solid rgba(248, 113, 113, 0.6);
+            border-radius: 20px;
+            text-align: center;
+            animation: slideInUp 0.8s ease-out;
+        }
+        .disabled-banner .banner-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .disabled-banner h2 { font-size: 1.8rem; margin-bottom: 1rem; color: #fca5a5; }
+        .disabled-banner .disabled-message { font-size: 1.1rem; opacity: 0.9; line-height: 1.6; }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -267,6 +284,12 @@
     </nav>
 
     <div class="floating-particles" id="particles"></div>
+
+    <div class="disabled-banner" id="disabledBanner">
+        <div class="banner-icon">🚧</div>
+        <h2>Tickets Temporarily Unavailable</h2>
+        <p class="disabled-message"></p>
+    </div>
 
     <div class="container">
         <div class="header">
@@ -276,6 +299,10 @@
 
         <div class="form-container">
             <form id="ticketForm">
+                <!-- Honeypot: invisible to real users — bots fill it in and get silently rejected -->
+                <input type="text" name="botcheck" id="botcheck" autocomplete="off" tabindex="-1"
+                       aria-hidden="true" style="display:none !important; position:absolute; left:-9999px;">
+
                 <div class="form-group">
                     <label for="name">👤 Your Name</label>
                     <input type="text" id="name" name="name" placeholder="Enter your full name" required>
@@ -387,56 +414,81 @@
             }
         });
 
-        // Form submission
-        document.getElementById('ticketForm').addEventListener('submit', function(e) {
+        // ── Form submission ─────────────────────────────────────────────────
+        document.getElementById('ticketForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
+            // Honeypot: real users never see or fill this field — bots do
+            if (document.getElementById('botcheck').value !== '') {
+                // Fake success so bots don't know they were blocked
+                showSubmitSuccess('TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase());
+                return;
+            }
+
             const submitBtn = document.getElementById('submitBtn');
-            const successMessage = document.getElementById('successMessage');
-            const ticketId = document.getElementById('ticketId');
-            
-            // Generate a random ticket ID
-            const randomId = 'TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-            
-            // Simulate form submission
             submitBtn.textContent = 'Submitting... ⏳';
             submitBtn.disabled = true;
-            
-            setTimeout(() => {
-                submitBtn.textContent = '✅ Submitted!';
-                submitBtn.classList.add('submitted');
-                
-                ticketId.textContent = randomId;
-                successMessage.style.display = 'block';
-                
-                // Scroll to success message
-                successMessage.scrollIntoView({ behavior: 'smooth' });
-                
-                // Store ticket data (in a real app, this would go to a database)
-                const ticketData = {
-                    id: randomId,
-                    name: document.getElementById('name').value,
-                    email: document.getElementById('email').value,
-                    category: document.getElementById('category').value,
-                    priority: document.getElementById('priority').value,
-                    subject: document.getElementById('subject').value,
-                    description: document.getElementById('description').value,
-                    timestamp: new Date().toISOString(),
-                    status: 'open'
-                };
-                
-                // Store in browser's local storage for demo purposes
-                let tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
-                tickets.push(ticketData);
-                localStorage.setItem('tickets', JSON.stringify(tickets));
-                
-                console.log('Ticket stored:', ticketData);
-                
-            }, 2000);
+
+            const now      = new Date();
+            const ticketId = 'TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+            const ticketData = {
+                id:          ticketId,
+                name:        sanitizeInput(document.getElementById('name').value, 200),
+                email:       sanitizeInput(document.getElementById('email').value, 200),
+                category:    sanitizeInput(document.getElementById('category').value, 100),
+                priority:    sanitizeInput(document.getElementById('priority').value, 50),
+                subject:     sanitizeInput(document.getElementById('subject').value, 300),
+                description: sanitizeInput(document.getElementById('description').value, 2000),
+                date:        now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+                timestamp:   now.toISOString(),
+                status:      'open',
+            };
+
+            // Always save locally first (works even if email routing is not configured)
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            tickets.push(ticketData);
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+
+            // Attempt email routing via Web3Forms
+            const result = await sendTicketEmail(ticketData);
+
+            if (result.code === 'limit_exceeded') {
+                // Monthly quota hit — disable form and show message
+                document.getElementById('ticketForm').style.display = 'none';
+                const banner = document.getElementById('disabledBanner');
+                banner.style.display = 'block';
+                banner.querySelector('.disabled-message').textContent = getConfig().disabled_message;
+                return;
+            }
+
+            // Show success (ticket is saved locally regardless of email status)
+            showSubmitSuccess(ticketId);
         });
+
+        function showSubmitSuccess(ticketId) {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.textContent = '✅ Submitted!';
+            submitBtn.classList.add('submitted');
+            document.getElementById('ticketId').textContent = ticketId;
+            const msg = document.getElementById('successMessage');
+            msg.style.display = 'block';
+            msg.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function checkSubmissionsDisabled() {
+            const config = getConfig();
+            if (config.submissions_disabled) {
+                document.getElementById('ticketForm').style.display = 'none';
+                const banner = document.getElementById('disabledBanner');
+                banner.style.display = 'block';
+                banner.querySelector('.disabled-message').textContent = config.disabled_message;
+            }
+        }
 
         // Initialize particles on page load
         document.addEventListener('DOMContentLoaded', function() {
+            checkSubmissionsDisabled();
             createParticles();
             
             // Add subtle animations to form elements

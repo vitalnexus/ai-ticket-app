@@ -379,7 +379,90 @@
                 gap: 1rem;
             }
         }
+
+        /* ── Settings Panel ────────────────────────────────────── */
+        .settings-section { display: none; animation: fadeInUp 0.5s ease-out; }
+
+        .settings-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .settings-card h4 { font-size: 1.1rem; margin-bottom: 0.5rem; color: #ffd700; }
+        .settings-card > p { font-size: 0.9rem; opacity: 0.8; margin-bottom: 1rem; line-height: 1.5; }
+        .settings-card a { color: #ffd700; }
+
+        .settings-field { margin-top: 1rem; }
+        .settings-field label {
+            display: block; font-size: 0.9rem; font-weight: 600;
+            margin-bottom: 0.5rem; color: #ffd700;
+        }
+        .settings-field input[type="password"],
+        .settings-field input[type="text"],
+        .settings-field textarea {
+            width: 100%; padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px; color: white; font-size: 0.95rem;
+            transition: border-color 0.3s;
+        }
+        .settings-field input:focus, .settings-field textarea:focus {
+            outline: none; border-color: #ffd700;
+        }
+        .settings-field input::placeholder, .settings-field textarea::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.75rem; margin-top: 0.5rem;
+        }
+        .toggle-item {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; cursor: pointer; transition: background 0.2s;
+        }
+        .toggle-item:hover { background: rgba(255, 255, 255, 0.1); }
+        .toggle-item input[type="checkbox"] {
+            width: 16px; height: 16px; accent-color: #ffd700;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .toggle-item label { cursor: pointer; font-size: 0.9rem; line-height: 1.3; }
+
+        .submissions-toggle {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+        }
+        .submissions-toggle input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: #f87171; cursor: pointer;
+        }
+        .submissions-toggle label { cursor: pointer; font-size: 0.95rem; }
+
+        .disabled-msg-field { display: none; margin-top: 1rem; }
+
+        .settings-actions {
+            display: flex; gap: 1rem; margin-top: 1.5rem;
+            align-items: center; flex-wrap: wrap;
+        }
+        .save-status { font-size: 0.9rem; padding: 0.5rem 0; }
+        .save-status.success { color: #4ade80; }
+        .save-status.error   { color: #f87171; }
+
+        .settings-notice {
+            font-size: 0.8rem; opacity: 0.6; margin-top: 1rem;
+            padding: 0.75rem; background: rgba(255,215,0,0.05);
+            border: 1px solid rgba(255,215,0,0.2); border-radius: 6px; line-height: 1.5;
+        }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -391,15 +474,16 @@
                 </button>
                 <button class="btn btn-secondary" onclick="clearAllTickets()">
                     🗑️ Clear All
-                </button>
-                <a href="#" class="btn btn-primary" onclick="window.history.back()">
+                </button>                <button id="settingsBtn" class="btn btn-secondary" onclick="toggleSettingsPanel()">
+                    ⚙️ Settings
+                </button>                <a href="#" class="btn btn-primary" onclick="window.history.back()">
                     ← Back to Form
                 </a>
             </div>
         </div>
     </nav>
 
-    <div class="dashboard-container">
+    <div class="dashboard-container" id="ticketsMainContainer">
         <div class="dashboard-header">
             <h2>📊 Ticket Management Dashboard</h2>
             <p>Monitor and manage all support tickets in real-time</p>
@@ -457,6 +541,79 @@
             </div>
             <div id="ticketsContainer">
                 <!-- Tickets will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚙️ Settings Panel -->
+    <div class="dashboard-container" id="settingsContainer" style="display:none;">
+        <div class="dashboard-header">
+            <h2>⚙️ System Settings</h2>
+            <p>Configure email routing, confirmation fields, and submission controls</p>
+        </div>
+
+        <div class="settings-section" id="settingsSection" style="display:block;">
+
+            <!-- Email Routing -->
+            <div class="settings-card">
+                <h4>📧 Email Routing — Web3Forms</h4>
+                <p>
+                    Your destination email is <strong>never stored in any code file</strong>.
+                    <a href="https://web3forms.com" target="_blank" rel="noopener noreferrer">Register at web3forms.com</a>
+                    — enter your email address, verify it, and paste the access key below.<br>
+                    To change your routing email later: register a new key for the new address, then update it here.
+                </p>
+                <div class="settings-field">
+                    <label for="web3formsKey">Web3Forms Access Key</label>
+                    <div style="display:flex; gap:0.75rem;">
+                        <input type="password" id="web3formsKey"
+                               placeholder="Paste your access key…"
+                               autocomplete="off" spellcheck="false">
+                        <button class="btn btn-secondary" style="white-space:nowrap;"
+                                onclick="testWeb3Forms()">&#128273; Test Key</button>
+                    </div>
+                    <div id="keyTestResult" style="margin-top:0.5rem; font-size:0.85rem; min-height:1.2em;"></div>
+                </div>
+                <div class="settings-notice">
+                    ⚠️ The Settings panel is only protected by your browser’s localStorage — use it from a trusted device.
+                    Do not share your admin URL publicly.
+                </div>
+            </div>
+
+            <!-- Confirmation Fields -->
+            <div class="settings-card">
+                <h4>📋 Confirmation Email Fields</h4>
+                <p>Choose which fields appear in the auto-reply sent to ticket submitters. Changes take effect on the next submission.</p>
+                <div class="toggle-grid" id="confirmFieldsGrid">
+                    <!-- Populated by renderSettingsPanel() -->
+                </div>
+            </div>
+
+            <!-- Submission Control -->
+            <div class="settings-card">
+                <h4>🚦 Ticket Submission Control</h4>
+                <p>
+                    Manually disable new ticket submissions (e.g. during maintenance).
+                    This also activates automatically when your Web3Forms monthly limit is reached.
+                </p>
+                <div class="submissions-toggle">
+                    <input type="checkbox" id="submissionsDisabledToggle"
+                           onchange="toggleDisabledMsgField()">
+                    <label for="submissionsDisabledToggle">Disable new ticket submissions</label>
+                </div>
+                <div class="disabled-msg-field" id="disabledMsgField">
+                    <div class="settings-field" style="margin-top:0.75rem;">
+                        <label for="disabledMsgText">Message shown to visitors:</label>
+                        <textarea id="disabledMsgText" rows="3" maxlength="500"
+                                  placeholder="Enter message shown to visitors…"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="btn btn-primary" onclick="saveSettings()">&#128190; Save Settings</button>
+                <button class="btn btn-secondary" onclick="resetSettings()">&#8635; Reset to Defaults</button>
+                <span class="save-status" id="saveStatus"></span>
             </div>
         </div>
     </div>
@@ -795,6 +952,131 @@
                 closeModal();
             }
         });
+
+        // ── Settings Panel ───────────────────────────────────────────────
+
+        function toggleSettingsPanel() {
+            const settingsContainer = document.getElementById('settingsContainer');
+            const ticketsContainer  = document.getElementById('ticketsMainContainer');
+            const btn               = document.getElementById('settingsBtn');
+            const isOpen            = settingsContainer.style.display !== 'none';
+
+            if (isOpen) {
+                settingsContainer.style.display = 'none';
+                ticketsContainer.style.display  = '';
+                btn.textContent = '⚙️ Settings';
+                btn.classList.replace('btn-primary', 'btn-secondary');
+            } else {
+                settingsContainer.style.display = 'block';
+                ticketsContainer.style.display  = 'none';
+                btn.textContent = '← Tickets';
+                btn.classList.replace('btn-secondary', 'btn-primary');
+                renderSettingsPanel();
+            }
+        }
+
+        function renderSettingsPanel() {
+            const config = getConfig();
+
+            // Web3Forms key
+            document.getElementById('web3formsKey').value = config.web3forms_key || '';
+
+            // Confirmation fields toggles
+            const grid   = document.getElementById('confirmFieldsGrid');
+            const labels = (typeof FIELD_LABELS !== 'undefined') ? FIELD_LABELS : {};
+            grid.innerHTML = Object.entries(config.confirmation_fields).map(([key, val]) => `
+                <div class="toggle-item" onclick="document.getElementById('cf_${key}').click()">
+                    <input type="checkbox" id="cf_${key}" ${val ? 'checked' : ''}
+                           onclick="event.stopPropagation()">
+                    <label for="cf_${key}">${labels[key] || key}</label>
+                </div>
+            `).join('');
+
+            // Submissions toggle
+            const disabledChk = document.getElementById('submissionsDisabledToggle');
+            disabledChk.checked = config.submissions_disabled;
+            document.getElementById('disabledMsgText').value = config.disabled_message || '';
+            document.getElementById('disabledMsgField').style.display =
+                config.submissions_disabled ? 'block' : 'none';
+        }
+
+        function toggleDisabledMsgField() {
+            const show = document.getElementById('submissionsDisabledToggle').checked;
+            document.getElementById('disabledMsgField').style.display = show ? 'block' : 'none';
+        }
+
+        async function testWeb3Forms() {
+            const key      = document.getElementById('web3formsKey').value.trim();
+            const resultEl = document.getElementById('keyTestResult');
+
+            if (!key) {
+                resultEl.innerHTML = '<span style="color:#fbbf24;">⚠️ Enter an access key first.</span>';
+                return;
+            }
+
+            resultEl.innerHTML = '⏳ Testing…';
+
+            try {
+                const res = await fetch('https://api.web3forms.com/submit', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                    body: JSON.stringify({
+                        access_key: key,
+                        subject:    '[Test] AI Ticket App — Key Verification',
+                        name:       'Admin Test',
+                        email:      'noreply@test.invalid',
+                        message:    'Automated key test from your AI Ticket App admin settings. No action needed.',
+                        botcheck:   '',
+                    }),
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    resultEl.innerHTML =
+                        '<span style="color:#4ade80;">✅ Key valid — a test notification was sent to your registered address.</span>';
+                } else {
+                    const msg = sanitizeInput(data.message || 'Invalid key — check your Web3Forms access key.');
+                    resultEl.innerHTML = `<span style="color:#f87171;">❌ ${msg}</span>`;
+                }
+            } catch (_) {
+                resultEl.innerHTML =
+                    '<span style="color:#f87171;">❌ Network error — check your internet connection.</span>';
+            }
+        }
+
+        function saveSettings() {
+            const key                = document.getElementById('web3formsKey').value.trim();
+            const submissionsDisabled = document.getElementById('submissionsDisabledToggle').checked;
+            const disabledMessage    = document.getElementById('disabledMsgText').value.trim();
+
+            // Gather confirmation_fields from checkboxes
+            const confirmationFields = {};
+            document.querySelectorAll('[id^="cf_"]').forEach(cb => {
+                confirmationFields[cb.id.replace('cf_', '')] = cb.checked;
+            });
+
+            saveConfig({
+                web3forms_key:         key,
+                submissions_disabled:  submissionsDisabled,
+                disabled_message:      disabledMessage || DEFAULT_CONFIG.disabled_message,
+                confirmation_fields:   confirmationFields,
+            });
+
+            const status = document.getElementById('saveStatus');
+            status.textContent  = '✅ Settings saved.';
+            status.className    = 'save-status success';
+            setTimeout(() => { status.textContent = ''; }, 3000);
+        }
+
+        function resetSettings() {
+            if (!confirm('Reset all settings to defaults? Your Web3Forms key will be cleared.')) return;
+            localStorage.removeItem('site_config');
+            renderSettingsPanel();
+            const status = document.getElementById('saveStatus');
+            status.textContent = '↺ Settings reset to defaults.';
+            status.className   = 'save-status';
+            setTimeout(() => { status.textContent = ''; }, 3000);
+        }
     </script>
 </body>
 </html>

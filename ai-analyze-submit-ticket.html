@@ -285,12 +285,35 @@
                 order: -1;
             }
         }
+
+        /* ── Disabled Banner ─────────────────────────────────────── */
+        .disabled-banner {
+            display: none;
+            max-width: 1000px;
+            margin: 100px auto 0;
+            padding: 2.5rem;
+            background: rgba(248, 113, 113, 0.15);
+            border: 2px solid rgba(248, 113, 113, 0.6);
+            border-radius: 20px;
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        .disabled-banner .banner-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .disabled-banner h2 { font-size: 1.8rem; margin-bottom: 1rem; color: #fca5a5; }
+        .disabled-banner .disabled-message { font-size: 1.1rem; opacity: 0.9; line-height: 1.6; }
     </style>
+    <script src="config.js"></script>
 </head>
 <body>
     <nav class="navbar">
         <h1>🤖 Steve's AI-Powered Ticketing System</h1>
     </nav>
+
+    <div class="disabled-banner" id="disabledBanner">
+        <div class="banner-icon">🚧</div>
+        <h2>Tickets Temporarily Unavailable</h2>
+        <p class="disabled-message"></p>
+    </div>
 
     <div class="container">
         <div class="main-form">
@@ -300,6 +323,13 @@
             </div>
 
             <form id="ticketForm">
+                <!-- Honeypot: invisible to real users — bots fill it in and get silently rejected -->
+                <input type="text" name="botcheck" id="botcheck" autocomplete="off" tabindex="-1"
+                       aria-hidden="true" style="display:none !important; position:absolute; left:-9999px;">
+                <!-- Hidden fields updated by AI analysis in real time -->
+                <input type="hidden" id="ai_category" value="general">
+                <input type="hidden" id="ai_priority" value="medium">
+
                 <div class="form-group">
                     <label for="name">👤 Your Name</label>
                     <input type="text" id="name" name="name" placeholder="Enter your full name" required>
@@ -542,6 +572,9 @@
                 `;
 
                 output.innerHTML = html;
+                // Keep hidden form fields in sync with AI-determined values
+                document.getElementById('ai_category').value = analysis.category;
+                document.getElementById('ai_priority').value = analysis.priority;
                 this.hideThinking();
             }
 
@@ -582,28 +615,79 @@
         // Initialize the AI system
         const aiAnalyzer = new AITicketAnalyzer();
 
-        // Form submission
-        document.getElementById('ticketForm').addEventListener('submit', function(e) {
+        // ── Form submission ───────────────────────────────────────────────
+        document.getElementById('ticketForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const formData = new FormData(this);
-            const ticketData = Object.fromEntries(formData);
-            
-            // Generate ticket ID
-            ticketData.id = 'AI-TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-            ticketData.timestamp = new Date().toISOString();
-            ticketData.status = 'open';
-            
-            // Store ticket
-            let tickets = JSON.parse(localStorage.getItem('ai-tickets') || '[]');
-            tickets.push(ticketData);
-            localStorage.setItem('ai-tickets', JSON.stringify(tickets));
-            
-            // Show success
-            alert(`🎉 AI-Enhanced Ticket Created!\nTicket ID: ${ticketData.id}\n\nOur AI has analyzed your request and it's been routed to the appropriate team.`);
-            
-            console.log('AI Ticket Created:', ticketData);
+
+            // Honeypot: real users never see or fill this field — bots do
+            if (document.getElementById('botcheck').value !== '') {
+                showAISubmitSuccess('AI-TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase());
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.textContent = 'Submitting... ⏳';
+            submitBtn.disabled = true;
+
+            const now      = new Date();
+            const ticketId = 'AI-TKT-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+            const ticketData = {
+                id:          ticketId,
+                name:        sanitizeInput(document.getElementById('name').value, 200),
+                email:       sanitizeInput(document.getElementById('email').value, 200),
+                subject:     sanitizeInput(document.getElementById('subject').value, 300),
+                description: sanitizeInput(document.getElementById('description').value, 2000),
+                category:    sanitizeInput(document.getElementById('ai_category').value || 'general', 100),
+                priority:    sanitizeInput(document.getElementById('ai_priority').value  || 'medium',  50),
+                date:        now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+                timestamp:   now.toISOString(),
+                status:      'open',
+            };
+
+            // Always save locally first
+            const stored = JSON.parse(localStorage.getItem('ai-tickets') || '[]');
+            stored.push(ticketData);
+            localStorage.setItem('ai-tickets', JSON.stringify(stored));
+
+            // Attempt email routing via Web3Forms
+            const result = await sendTicketEmail(ticketData);
+
+            if (result.code === 'limit_exceeded') {
+                document.getElementById('ticketForm').style.display = 'none';
+                const banner = document.getElementById('disabledBanner');
+                banner.style.display = 'block';
+                banner.querySelector('.disabled-message').textContent = getConfig().disabled_message;
+                return;
+            }
+
+            showAISubmitSuccess(ticketId);
         });
+
+        function showAISubmitSuccess(ticketId) {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.textContent = '✅ AI Ticket Submitted!';
+            submitBtn.disabled = true;
+            document.getElementById('aiOutput').innerHTML = `
+                <div class="ai-suggestion">
+                    <h4>🎉 Ticket Created!</h4>
+                    <p style="margin-top:0.5rem;">Your ticket <strong>${ticketId}</strong> has been submitted and routed.</p>
+                    <p style="margin-top:0.5rem; font-size:0.9rem; opacity:0.8;">A confirmation will be sent to your email address.</p>
+                </div>
+            `;
+        }
+
+        function checkSubmissionsDisabled() {
+            const config = getConfig();
+            if (config.submissions_disabled) {
+                document.getElementById('ticketForm').style.display = 'none';
+                const banner = document.getElementById('disabledBanner');
+                banner.style.display = 'block';
+                banner.querySelector('.disabled-message').textContent = config.disabled_message;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', checkSubmissionsDisabled);
     </script>
 </body>
 </html>
