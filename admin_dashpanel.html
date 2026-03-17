@@ -18,6 +18,98 @@
             color: white;
         }
 
+        /* ── Login Gate ───────────────────────────────────────────────────── */
+        #loginGate {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #2d1b69 100%);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #loginGate.active { display: flex; }
+
+        .login-box {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            animation: fadeInUp 0.5s ease-out;
+        }
+        .login-box h2 {
+            text-align: center;
+            font-size: 1.6rem;
+            margin-bottom: 0.4rem;
+        }
+        .login-box .login-sub {
+            text-align: center;
+            opacity: 0.6;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        .login-field {
+            margin-bottom: 1.25rem;
+        }
+        .login-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ffd700;
+            margin-bottom: 0.4rem;
+        }
+        .login-field input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .login-field input:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+        .login-field input::placeholder { color: rgba(255,255,255,0.35); }
+        .login-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 0.5rem;
+        }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,215,0,0.35); }
+        .login-error {
+            display: none;
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: rgba(248,113,113,0.15);
+            border: 1px solid rgba(248,113,113,0.5);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #fca5a5;
+            text-align: center;
+        }
+        .login-notice {
+            margin-top: 1.25rem;
+            font-size: 0.78rem;
+            opacity: 0.5;
+            text-align: center;
+            line-height: 1.5;
+        }
+
         .navbar {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -474,14 +566,55 @@
                 </button>
                 <button class="btn btn-secondary" onclick="clearAllTickets()">
                     🗑️ Clear All
-                </button>                <button id="settingsBtn" class="btn btn-secondary" onclick="toggleSettingsPanel()">
+                </button>
+                <button id="settingsBtn" class="btn btn-secondary" onclick="toggleSettingsPanel()">
                     ⚙️ Settings
-                </button>                <a href="#" class="btn btn-primary" onclick="window.history.back()">
+                </button>
+                <button class="btn btn-secondary" onclick="adminLogout()">
+                    🔒 Logout
+                </button>
+                <a href="#" class="btn btn-primary" onclick="window.history.back()">
                     ← Back to Form
                 </a>
             </div>
         </div>
     </nav>
+
+    <!-- ── Login Gate Overlay ──────────────────────────────────────────────── -->
+    <div id="loginGate">
+        <div class="login-box">
+            <!-- First-time setup -->
+            <div id="loginSetupView" style="display:none;">
+                <h2>🔐 Create Admin Password</h2>
+                <p class="login-sub">First-time setup — choose a strong password to protect this dashboard.</p>
+                <div class="login-field">
+                    <label for="setupPassword">New Password</label>
+                    <input type="password" id="setupPassword" placeholder="Enter a strong password…" autocomplete="new-password">
+                </div>
+                <div class="login-field">
+                    <label for="setupConfirm">Confirm Password</label>
+                    <input type="password" id="setupConfirm" placeholder="Re-enter password…" autocomplete="new-password">
+                </div>
+                <button class="login-btn" onclick="createAdminPassword()">Create Password &amp; Enter Dashboard</button>
+                <div class="login-error" id="setupError"></div>
+                <p class="login-notice">Your password is hashed with SHA-256 and stored only in this browser's localStorage. It is never sent anywhere.</p>
+            </div>
+            <!-- Login -->
+            <div id="loginAuthView" style="display:none;">
+                <h2>🎛️ Admin Dashboard</h2>
+                <p class="login-sub">Enter your password to continue.</p>
+                <div class="login-field">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password…"
+                           autocomplete="current-password"
+                           onkeydown="if(event.key==='Enter') verifyAdminPassword();">
+                </div>
+                <button class="login-btn" onclick="verifyAdminPassword()">Login</button>
+                <div class="login-error" id="loginError">Incorrect password. Please try again.</div>
+                <p class="login-notice">Access is limited to this device. Clear browser data to reset the password.</p>
+            </div>
+        </div>
+    </div>
 
     <div class="dashboard-container" id="ticketsMainContainer">
         <div class="dashboard-header">
@@ -586,6 +719,28 @@
                 <p>Choose which fields appear in the auto-reply sent to ticket submitters. Changes take effect on the next submission.</p>
                 <div class="toggle-grid" id="confirmFieldsGrid">
                     <!-- Populated by renderSettingsPanel() -->
+                </div>
+            </div>
+
+            <!-- Change Password -->
+            <div class="settings-card">
+                <h4>🔐 Change Admin Password</h4>
+                <p>Update the password used to access this dashboard.</p>
+                <div class="settings-field">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" placeholder="Enter current password…" autocomplete="current-password">
+                </div>
+                <div class="settings-field">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" placeholder="Enter new password…" autocomplete="new-password">
+                </div>
+                <div class="settings-field">
+                    <label for="confirmNewPassword">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" placeholder="Re-enter new password…" autocomplete="new-password">
+                </div>
+                <div class="settings-actions" style="margin-top:1rem;">
+                    <button class="btn btn-primary" onclick="changeAdminPassword()">🔐 Update Password</button>
+                    <span class="save-status" id="pwChangeStatus"></span>
                 </div>
             </div>
 
@@ -952,6 +1107,88 @@
                 closeModal();
             }
         });
+
+        // ── Auth (SHA-256 via Web Crypto API) ──────────────────────────────────
+
+        const AUTH_KEY    = 'admin_pw_hash';
+        const SESSION_KEY = 'admin_session';
+
+        async function sha256(str) {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+        }
+
+        async function initAuth() {
+            if (sessionStorage.getItem(SESSION_KEY) === 'ok') return;
+            const gate = document.getElementById('loginGate');
+            gate.classList.add('active');
+            if (localStorage.getItem(AUTH_KEY)) {
+                document.getElementById('loginAuthView').style.display = 'block';
+                setTimeout(() => document.getElementById('loginPassword').focus(), 100);
+            } else {
+                document.getElementById('loginSetupView').style.display = 'block';
+                setTimeout(() => document.getElementById('setupPassword').focus(), 100);
+            }
+        }
+
+        async function createAdminPassword() {
+            const pw  = document.getElementById('setupPassword').value;
+            const pw2 = document.getElementById('setupConfirm').value;
+            const err = document.getElementById('setupError');
+            if (pw.length < 8) { err.textContent = 'Password must be at least 8 characters.'; err.style.display = 'block'; return; }
+            if (pw !== pw2)    { err.textContent = 'Passwords do not match.';                  err.style.display = 'block'; return; }
+            localStorage.setItem(AUTH_KEY, await sha256(pw));
+            sessionStorage.setItem(SESSION_KEY, 'ok');
+            document.getElementById('loginGate').classList.remove('active');
+            err.style.display = 'none';
+        }
+
+        async function verifyAdminPassword() {
+            const pw     = document.getElementById('loginPassword').value;
+            const err    = document.getElementById('loginError');
+            const stored = localStorage.getItem(AUTH_KEY);
+            if (!stored) { initAuth(); return; }
+            if (await sha256(pw) === stored) {
+                sessionStorage.setItem(SESSION_KEY, 'ok');
+                document.getElementById('loginGate').classList.remove('active');
+                document.getElementById('loginPassword').value = '';
+                err.style.display = 'none';
+            } else {
+                err.style.display = 'block';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+            }
+        }
+
+        function adminLogout() {
+            sessionStorage.removeItem(SESSION_KEY);
+            location.reload();
+        }
+
+        async function changeAdminPassword() {
+            const current = document.getElementById('currentPassword').value;
+            const next    = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmNewPassword').value;
+            const status  = document.getElementById('pwChangeStatus');
+            const stored  = localStorage.getItem(AUTH_KEY);
+            if (!stored || await sha256(current) !== stored) {
+                status.textContent = '❌ Current password is incorrect.'; status.className = 'save-status error'; return;
+            }
+            if (next.length < 8) {
+                status.textContent = '❌ New password must be at least 8 characters.'; status.className = 'save-status error'; return;
+            }
+            if (next !== confirm) {
+                status.textContent = '❌ New passwords do not match.'; status.className = 'save-status error'; return;
+            }
+            localStorage.setItem(AUTH_KEY, await sha256(next));
+            document.getElementById('currentPassword').value    = '';
+            document.getElementById('newPassword').value        = '';
+            document.getElementById('confirmNewPassword').value = '';
+            status.textContent = '✅ Password updated.'; status.className = 'save-status success';
+            setTimeout(() => { status.textContent = ''; }, 3000);
+        }
+
+        initAuth();
 
         // ── Settings Panel ───────────────────────────────────────────────
 
